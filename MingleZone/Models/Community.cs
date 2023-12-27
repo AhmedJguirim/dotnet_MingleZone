@@ -7,6 +7,8 @@
         public string Description { get; set; } = null!;
         public DateTime CreatedDate { get; set; }
         public DateTime UpdatedDate { get; set; }
+        public int AdminId { get; set; }
+        public virtual User? Admin { get; set; }
         public virtual ICollection<Post> Posts { get; set; }
         public virtual ICollection<User> Users { get; set; }
         public virtual ICollection<CommunityMembership> CommunityMemberships { get; set; }

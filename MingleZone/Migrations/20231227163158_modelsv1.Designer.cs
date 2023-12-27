@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MingleZone.Models;
 
@@ -11,9 +12,11 @@ using MingleZone.Models;
 namespace MingleZone.Migrations
 {
     [DbContext(typeof(MingleDbContext))]
-    partial class MingleDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231227163158_modelsv1")]
+    partial class modelsv1
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,32 +25,6 @@ namespace MingleZone.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("MingleZone.Models.Attachment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FilePath")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("PostId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PostId");
-
-                    b.ToTable("Attachments");
-                });
-
             modelBuilder.Entity("MingleZone.Models.Community", b =>
                 {
                     b.Property<int>("Id")
@@ -55,9 +32,6 @@ namespace MingleZone.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AdminId")
-                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
@@ -74,8 +48,6 @@ namespace MingleZone.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("AdminId");
 
                     b.ToTable("Communities");
                 });
@@ -107,6 +79,32 @@ namespace MingleZone.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("CommunityMemberships");
+                });
+
+            modelBuilder.Entity("MingleZone.Models.File", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PostId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.ToTable("Files");
                 });
 
             modelBuilder.Entity("MingleZone.Models.Post", b =>
@@ -216,28 +214,6 @@ namespace MingleZone.Migrations
                     b.ToTable("PostTag");
                 });
 
-            modelBuilder.Entity("MingleZone.Models.Attachment", b =>
-                {
-                    b.HasOne("MingleZone.Models.Post", "Post")
-                        .WithMany("Attachments")
-                        .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Post");
-                });
-
-            modelBuilder.Entity("MingleZone.Models.Community", b =>
-                {
-                    b.HasOne("MingleZone.Models.User", "Admin")
-                        .WithMany()
-                        .HasForeignKey("AdminId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Admin");
-                });
-
             modelBuilder.Entity("MingleZone.Models.CommunityMembership", b =>
                 {
                     b.HasOne("MingleZone.Models.Community", "Community")
@@ -255,6 +231,17 @@ namespace MingleZone.Migrations
                     b.Navigation("Community");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("MingleZone.Models.File", b =>
+                {
+                    b.HasOne("MingleZone.Models.Post", "Post")
+                        .WithMany("Attachments")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
                 });
 
             modelBuilder.Entity("MingleZone.Models.Post", b =>

@@ -11,6 +11,7 @@ namespace MingleZone.Models
         public virtual User User { get; set; } = null!;
         public DateTime CreatedDate { get; set; }
         public DateTime UpdatedDate { get; set; }
+
         public CommunityMembership()
         {
             CreatedDate = DateTime.Now;
