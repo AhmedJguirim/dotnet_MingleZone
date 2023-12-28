@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MingleZone.Models;
 
@@ -11,9 +12,11 @@ using MingleZone.Models;
 namespace MingleZone.Migrations
 {
     [DbContext(typeof(MingleDbContext))]
-    partial class MingleDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231228092300_uniqueConstratinEMail")]
+    partial class uniqueConstratinEMail
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

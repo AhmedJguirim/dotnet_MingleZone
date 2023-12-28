@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using MingleZone.Models;
+using MingleZone.Utils;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,7 +10,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(
+    c =>
+    {
+        c.EnableAnnotations();
+        c.SwaggerDoc("v1",new OpenApiInfo { Title = "SwaggerAnnotations", Version = "v1" });
+        c.SchemaFilter<SwaggerSchemaExampleFilter>();
+    }
+    );
 builder.Services.AddDbContext<MingleDbContext>(
     options => options.UseSqlServer(
         builder.Configuration.GetConnectionString("MingleCs")));

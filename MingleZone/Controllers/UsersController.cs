@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using MingleZone.Models;
 
@@ -85,14 +86,32 @@ namespace MingleZone.Controllers
         [HttpPost]
         public async Task<ActionResult<User>> PostUser(User user)
         {
-          if (_context.Users == null)
-          {
-              return Problem("Entity set 'MingleDbContext.Users'  is null.");
-          }
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
+            try
+            {
+                if (_context.Users == null)
+                {
+                    return Problem("Entity set 'MingleDbContext.Users'  is null.");
+                }
+                _context.Users.Add(user);
+                await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetUser", new { id = user.Id }, user);
+                return CreatedAtAction("GetUser", new { id = user.Id }, user);
+            }
+            catch (DbUpdateException ex)
+            {
+                if (ex.InnerException is SqlException sqlException)
+                {
+
+                        int errorCode = sqlException.Errors[0].Number;
+                    if(errorCode == 2601) {
+                        return Problem("The email address is already used for another account", statusCode: 500);
+                    }
+                
+
+                }
+
+                return Problem("An error occurred while saving the user.", statusCode: 500);
+            }
         }
 
         // DELETE: api/Users/5
