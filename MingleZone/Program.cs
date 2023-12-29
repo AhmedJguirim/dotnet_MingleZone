@@ -1,3 +1,4 @@
+using Microsoft.CodeAnalysis.Options;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using MingleZone.Models;
@@ -16,6 +17,29 @@ builder.Services.AddSwaggerGen(
         c.EnableAnnotations();
         c.SwaggerDoc("v1",new OpenApiInfo { Title = "SwaggerAnnotations", Version = "v1" });
         c.SchemaFilter<SwaggerSchemaExampleFilter>();
+        c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            In = ParameterLocation.Header,
+            Description = "Please enter a valid token",
+            Name = "Authorization",
+            Type = SecuritySchemeType.Http,
+            BearerFormat = "JWT",
+            Scheme = "Bearer"
+        });
+        c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type=ReferenceType.SecurityScheme,
+                    Id="Bearer"
+                }
+            },
+            new string[]{}
+        }
+    });
     }
     );
 builder.Services.AddDbContext<MingleDbContext>(

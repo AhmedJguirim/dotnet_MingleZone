@@ -1,12 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+﻿
+using System.Security.Cryptography;
+using JWT.Algorithms;
+using JWT.Serializers;
+using JWT;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using MingleZone.Models;
+using MingleZone.Utils;
 
 namespace MingleZone.Controllers
 {
@@ -92,6 +93,7 @@ namespace MingleZone.Controllers
                 {
                     return Problem("Entity set 'MingleDbContext.Users'  is null.");
                 }
+                user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
                 _context.Users.Add(user);
                 await _context.SaveChangesAsync();
 
@@ -138,5 +140,55 @@ namespace MingleZone.Controllers
         {
             return (_context.Users?.Any(e => e.Id == id)).GetValueOrDefault();
         }
+
+        [HttpPost("auth")]
+        public ActionResult<object> Auth(string email,string password)
+        {
+            var loginResponse = new LoginResponse { };
+            var u = _context.Users.FirstOrDefault(e => e.Email == email);
+            if(u == null)
+            {
+                return Problem("There's no account With this email address",statusCode:404);
+            }
+            try
+            {
+                bool valid = BCrypt.Net.BCrypt.Verify(password, u.Password);
+            
+            
+            if (!valid)
+            {
+                return Problem("Wrong password",statusCode:401);
+            }
+            }catch(Exception ex)
+            {
+                return Problem("salt issue", statusCode: 500);
+            }
+            AuthHelper Ah = new AuthHelper();
+            RSA prkey = Ah.LoadPrivateKeyFromPemFile();
+            RSA pbkey = Ah.LoadPublicKeyFromPemFile();
+            IJwtAlgorithm algorithm = new RS256Algorithm(pbkey, prkey);
+            IJsonSerializer serializer = new JsonNetSerializer();
+            IBase64UrlEncoder urlEncoder = new JwtBase64UrlEncoder();
+            IJwtEncoder encoder = new JwtEncoder(algorithm, serializer, urlEncoder);
+            const string key = null; // not needed if algorithm is asymmetric
+
+            IDateTimeProvider provider = new UtcDateTimeProvider();
+            var now = provider.GetNow().AddDays(30);
+            double secondsSinceEpoch = UnixEpoch.GetSecondsSince(now);
+            var payload = new Dictionary<string, object>
+            {
+                { "id", u.Id },
+                { "exp", secondsSinceEpoch }
+            };
+
+            string token = encoder.Encode(payload, key);
+            loginResponse.Token = token;
+            loginResponse.responseMsg = new HttpResponseMessage();
+
+            return Ok( new { loginResponse } ) ;
+
+        }
     }
 }
+
+
