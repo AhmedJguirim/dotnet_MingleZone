@@ -1,6 +1,6 @@
 ﻿namespace MingleZone.Models
 {
-    public class CommunityMembership
+    public class MembershipRequest
     {
         public int Id { get; set; }
         public int UserId { get; set; }

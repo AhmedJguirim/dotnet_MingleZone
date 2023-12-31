@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using Newtonsoft.Json;
 using System.Text.Json.Nodes;
 using System.Dynamic;
+using MingleZone.Models;
 
 namespace MingleZone.Utils
 {
@@ -26,7 +27,8 @@ namespace MingleZone.Utils
             rsa.ImportFromPem(publicKey);
             return rsa;
         }
-        public int ValidateToken(string token)
+
+        public TokenValidationResult ValidateToken(string token)
         {
 
             try
@@ -40,22 +42,27 @@ namespace MingleZone.Utils
 
                 var json = decoder.Decode(token);
                 dynamic jsonObject = JsonConvert.DeserializeObject(json);
-                int Id = jsonObject.Id;
-                return Id;
+                int userId = jsonObject.id;
+                return new TokenValidationResult { UserId = userId, IsTokenValid = true };
             }
             catch (TokenNotYetValidException)
             {
-                Console.WriteLine("Token is not valid yet");
+                return new TokenValidationResult { IsTokenValid = false, ErrorMessage = "Token is not valid yet" };
             }
             catch (TokenExpiredException)
             {
-                Console.WriteLine("Token has expired");
+                return new TokenValidationResult { IsTokenValid = false, ErrorMessage = "Token has expired" };
             }
             catch (SignatureVerificationException)
             {
-                Console.WriteLine("Token has invalid signature");
+                return new TokenValidationResult { IsTokenValid = false, ErrorMessage = "Token has invalid signature" };
             }
-            return -1;
+            catch (Exception ex)
+            {
+                // Handle unexpected exceptions
+                return new TokenValidationResult { IsTokenValid = false, ErrorMessage = "Unexpected error: " + ex };
+            }
         }
+
     }
 }

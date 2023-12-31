@@ -91,12 +91,6 @@ namespace MingleZone.Migrations
                     b.Property<int>("CommunityId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("UpdatedDate")
-                        .HasColumnType("datetime2");
-
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
@@ -109,6 +103,29 @@ namespace MingleZone.Migrations
                     b.ToTable("CommunityMemberships");
                 });
 
+            modelBuilder.Entity("MingleZone.Models.MembershipRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CommunityId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommunityId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("MembershipRequests");
+                });
+
             modelBuilder.Entity("MingleZone.Models.Post", b =>
                 {
                     b.Property<int>("Id")
@@ -117,7 +134,7 @@ namespace MingleZone.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("CommunityId")
+                    b.Property<int>("CommunityId")
                         .HasColumnType("int");
 
                     b.Property<string>("Content")
@@ -173,9 +190,6 @@ namespace MingleZone.Migrations
                     b.Property<DateTime>("BirthDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("CommunityId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
@@ -195,8 +209,6 @@ namespace MingleZone.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CommunityId");
 
                     b.HasIndex("Email")
                         .IsUnique();
@@ -233,9 +245,9 @@ namespace MingleZone.Migrations
             modelBuilder.Entity("MingleZone.Models.Community", b =>
                 {
                     b.HasOne("MingleZone.Models.User", "Admin")
-                        .WithMany()
+                        .WithMany("AdminOf")
                         .HasForeignKey("AdminId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Admin");
@@ -244,7 +256,7 @@ namespace MingleZone.Migrations
             modelBuilder.Entity("MingleZone.Models.CommunityMembership", b =>
                 {
                     b.HasOne("MingleZone.Models.Community", "Community")
-                        .WithMany("CommunityMemberships")
+                        .WithMany("Memberships")
                         .HasForeignKey("CommunityId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -260,11 +272,32 @@ namespace MingleZone.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("MingleZone.Models.MembershipRequest", b =>
+                {
+                    b.HasOne("MingleZone.Models.Community", "Community")
+                        .WithMany("Requests")
+                        .HasForeignKey("CommunityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MingleZone.Models.User", "User")
+                        .WithMany("RequestedMemberships")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Community");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("MingleZone.Models.Post", b =>
                 {
-                    b.HasOne("MingleZone.Models.Community", null)
+                    b.HasOne("MingleZone.Models.Community", "Community")
                         .WithMany("Posts")
-                        .HasForeignKey("CommunityId");
+                        .HasForeignKey("CommunityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("MingleZone.Models.User", "User")
                         .WithMany("Posts")
@@ -272,14 +305,9 @@ namespace MingleZone.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("User");
-                });
+                    b.Navigation("Community");
 
-            modelBuilder.Entity("MingleZone.Models.User", b =>
-                {
-                    b.HasOne("MingleZone.Models.Community", null)
-                        .WithMany("Users")
-                        .HasForeignKey("CommunityId");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("PostTag", b =>
@@ -299,11 +327,11 @@ namespace MingleZone.Migrations
 
             modelBuilder.Entity("MingleZone.Models.Community", b =>
                 {
-                    b.Navigation("CommunityMemberships");
+                    b.Navigation("Memberships");
 
                     b.Navigation("Posts");
 
-                    b.Navigation("Users");
+                    b.Navigation("Requests");
                 });
 
             modelBuilder.Entity("MingleZone.Models.Post", b =>
@@ -313,9 +341,13 @@ namespace MingleZone.Migrations
 
             modelBuilder.Entity("MingleZone.Models.User", b =>
                 {
+                    b.Navigation("AdminOf");
+
                     b.Navigation("CommunityMemberships");
 
                     b.Navigation("Posts");
+
+                    b.Navigation("RequestedMemberships");
                 });
 #pragma warning restore 612, 618
         }

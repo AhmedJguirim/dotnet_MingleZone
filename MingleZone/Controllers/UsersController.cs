@@ -8,6 +8,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using MingleZone.Models;
 using MingleZone.Utils;
+using Microsoft.AspNetCore.Authorization;
 
 namespace MingleZone.Controllers
 {
@@ -16,10 +17,12 @@ namespace MingleZone.Controllers
     public class UsersController : ControllerBase
     {
         private readonly MingleDbContext _context;
+        AuthHelper ah;
 
         public UsersController(MingleDbContext context)
         {
             _context = context;
+            ah =  new AuthHelper();
         }
 
         // GET: api/Users
@@ -42,6 +45,40 @@ namespace MingleZone.Controllers
               return NotFound();
           }
             var user = await _context.Users.FindAsync(id);
+
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            return user;
+        }
+
+        // GET: api/userData
+        [HttpGet("userdata")]
+        public async Task<ActionResult<User>> GetUserData()
+        {
+            string authorizationHeader = HttpContext.Request.Headers["Authorization"];
+            if (string.IsNullOrEmpty(authorizationHeader))
+            {
+                return Unauthorized("Token not provided");
+            }
+            if (!authorizationHeader.StartsWith("Bearer "))
+            {
+                return Unauthorized("Invalid token format");
+            }
+            string jwtToken = authorizationHeader.Substring("Bearer ".Length);
+            
+            TokenValidationResult isValid = ah.ValidateToken(jwtToken);
+            if (!isValid.IsTokenValid)
+            {
+                return Unauthorized(isValid.ErrorMessage);
+            }
+            if (_context.Users == null)
+            {
+                return NotFound();
+            }
+            var user = await _context.Users.FindAsync(isValid.UserId);
 
             if (user == null)
             {
@@ -95,9 +132,17 @@ namespace MingleZone.Controllers
                 }
                 user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
                 _context.Users.Add(user);
+                Community cm = _context.Communities.Find(1);
+                CommunityMembership cmm = new()
+                {
+                    CommunityId = 1,
+                    UserId = user.Id
+                };
+                user.CommunityMemberships.Add(cmm);
+                cm.Memberships.Add(cmm);
                 await _context.SaveChangesAsync();
 
-                return CreatedAtAction("GetUser", new { id = user.Id }, user);
+                return Ok();
             }
             catch (DbUpdateException ex)
             {
@@ -111,8 +156,8 @@ namespace MingleZone.Controllers
                 
 
                 }
-
-                return Problem("An error occurred while saving the user.", statusCode: 500);
+                Console.WriteLine(ex);
+                return Problem(ex.Message, statusCode: 500);
             }
         }
 
@@ -163,9 +208,8 @@ namespace MingleZone.Controllers
             {
                 return Problem("salt issue", statusCode: 500);
             }
-            AuthHelper Ah = new AuthHelper();
-            RSA prkey = Ah.LoadPrivateKeyFromPemFile();
-            RSA pbkey = Ah.LoadPublicKeyFromPemFile();
+            RSA prkey = ah.LoadPrivateKeyFromPemFile();
+            RSA pbkey = ah.LoadPublicKeyFromPemFile();
             IJwtAlgorithm algorithm = new RS256Algorithm(pbkey, prkey);
             IJsonSerializer serializer = new JsonNetSerializer();
             IBase64UrlEncoder urlEncoder = new JwtBase64UrlEncoder();

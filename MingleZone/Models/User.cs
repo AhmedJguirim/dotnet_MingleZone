@@ -19,6 +19,8 @@ namespace MingleZone.Models
         public DateTime UpdatedDate { get; set; }
         public DateTime BirthDate { get; set; }
         public virtual ICollection<Post>  Posts { get; set; }
+        public virtual ICollection<MembershipRequest> RequestedMemberships { get; set; }
+        public virtual ICollection<Community> AdminOf { get; set; }
         public virtual ICollection<CommunityMembership> CommunityMemberships { get; set; }
 
         public User()
@@ -26,6 +28,8 @@ namespace MingleZone.Models
             CreatedDate = DateTime.Now;
             Posts = new HashSet<Post>();
             CommunityMemberships = new HashSet<CommunityMembership>();
+            RequestedMemberships = new HashSet<MembershipRequest>();
+            AdminOf = new HashSet<Community>();
             UpdatedDate = DateTime.Now;
         }
 

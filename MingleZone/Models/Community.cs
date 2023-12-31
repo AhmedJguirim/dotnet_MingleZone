@@ -13,16 +13,16 @@ namespace MingleZone.Models
         public DateTime UpdatedDate { get; set; }
         public int AdminId { get; set; }
         public virtual User? Admin { get; set; }
+        public virtual ICollection<MembershipRequest> Requests { get; set; }
         public virtual ICollection<Post> Posts { get; set; }
-        public virtual ICollection<User> Users { get; set; }
-        public virtual ICollection<CommunityMembership> CommunityMemberships { get; set; }
+        public virtual ICollection<CommunityMembership> Memberships { get; set; }
 
         public Community()
         {
             CreatedDate = DateTime.Now;
             Posts = new HashSet<Post>();
-            Users = new HashSet<User>();
-            CommunityMemberships = new HashSet<CommunityMembership>();
+            Requests = new HashSet<MembershipRequest>();
+            Memberships = new HashSet<CommunityMembership>();
             UpdatedDate = DateTime.Now;
         }
     }
