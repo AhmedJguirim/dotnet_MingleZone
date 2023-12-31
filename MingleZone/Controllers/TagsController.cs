@@ -48,6 +48,20 @@ namespace MingleZone.Controllers
 
             return tag;
         }
+        [HttpGet("postCountByTag/{tagId}")]
+        public ActionResult<int> GetPostCountByTag(int tagId)
+        {
+            Tag tag = _context.Tags.FirstOrDefault(t => t.Id == tagId);
+
+            if (tag == null)
+            {
+                return NotFound("Tag not found.");
+            }
+            int postCount = _context.Posts
+                .Count(p => p.Tags.Any(pt => pt.TagId == tagId));
+
+            return postCount;
+        }
 
         // PUT: api/Tags/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754

@@ -14,13 +14,13 @@ namespace MingleZone.Models
         
         public DateTime CreatedDate { get; set; }
         public DateTime UpdatedDate { get; set; }
-        public virtual User User { get; set; } = null!;
-        public virtual Community Community { get; set; } = null!;
-        public virtual ICollection<Tag> Tags { get; set; }
+        public virtual User? User { get; set; } = null!;
+        public virtual Community? Community { get; set; } = null!;
+        public virtual ICollection<PostTag> Tags { get; set; }
         public virtual ICollection<Attachment> Attachments { get; set; }
         public Post()
         {
-            Tags = new HashSet<Tag>();
+            Tags = new HashSet<PostTag>();
             Attachments = new HashSet<Attachment>();
             CreatedDate = DateTime.Now;
             UpdatedDate = DateTime.Now;

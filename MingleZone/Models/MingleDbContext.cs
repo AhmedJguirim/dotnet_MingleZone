@@ -14,6 +14,8 @@ namespace MingleZone.Models
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<CommunityMembership> CommunityMemberships { get; set; } = null!;
         public DbSet<MembershipRequest> MembershipRequests { get; set; } = null!;
+        public DbSet<PostTag> PostTags { get; set; } = null!;
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<User>()

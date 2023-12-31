@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Azure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -65,6 +67,7 @@ namespace MingleZone.Controllers
             }).ToList();
             return posts;
         }
+
         // GET: api/Posts
         [HttpGet("/Posts/user/{userId}")]
         public async Task<ActionResult<IEnumerable<PostsOut>>> GetPostsByUser(int userId)
@@ -95,6 +98,41 @@ namespace MingleZone.Controllers
                 .Select(m => m.CommunityId)
                 .ToList();
             var posts = _context.Posts.Where(p => communityIds.Contains(p.CommunityId) && p.UserId==userId).Include(p => p.User).Include(p => p.Community).Select(p => new PostsOut
+            {
+                Id = p.Id,
+                Content = p.Content,
+                UserId = p.UserId,
+                UserName = p.User.Name,
+                CommunityId = p.Community.Id,
+                CommunityName = p.Community.Name
+            }).ToList();
+            return posts;
+        }
+        [HttpGet("/community/postsByTag/{id}")]
+        public async Task<ActionResult<IEnumerable<PostsOut>>> GetTagPosts(int id)
+        {
+            if (_context.Posts == null)
+            {
+                return NotFound();
+            }
+            string authorizationHeader = HttpContext.Request.Headers["Authorization"];
+            if (string.IsNullOrEmpty(authorizationHeader))
+            {
+                return Unauthorized("Token not provided");
+            }
+            if (!authorizationHeader.StartsWith("Bearer "))
+            {
+                return Unauthorized("Invalid token format");
+            }
+            string jwtToken = authorizationHeader.Substring("Bearer ".Length);
+
+            TokenValidationResult isValid = ah.ValidateToken(jwtToken);
+            if (!isValid.IsTokenValid)
+            {
+                return Unauthorized(isValid.ErrorMessage);
+            }
+            int currentUserId = isValid.UserId;
+            var posts = _context.Posts.Where(p => p.Tags.Any(pt => pt.TagId == id)).Include(p => p.User).Include(p => p.Community).Select(p => new PostsOut
             {
                 Id = p.Id,
                 Content = p.Content,
@@ -223,7 +261,19 @@ namespace MingleZone.Controllers
 
             return NoContent();
         }
+        public static List<string> ExtractTags(string content)
+        {
+            string pattern = @"#\w+";
+            Regex regex = new Regex(pattern);
+            MatchCollection matches = regex.Matches(content);
+            List<string> tags = new List<string>();
+            foreach (Match match in matches)
+            {
+                tags.Add(match.Value.Substring(1));
+            }
 
+            return tags;
+        }
         // POST: api/Posts
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
@@ -249,10 +299,41 @@ namespace MingleZone.Controllers
           {
               return Problem("Entity set 'MingleDbContext.Posts'  is null.");
           }
-            bool isMember = _context.CommunityMemberships.Any(m => m.CommunityId == post.UserId);
+            bool isMember = _context.CommunityMemberships.Any(m => m.UserId == post.UserId);
             if(!isMember)
             {
                 return Unauthorized("you cannot post in this community , become a member first");
+            }
+            List<string> extractedTags = ExtractTags(post.Content);
+            foreach (string extractedTag in extractedTags)
+            {
+                // Try to find the tag in the database
+                Tag existingTag = _context.Tags.FirstOrDefault(t => t.Name == extractedTag);
+
+                if (existingTag == null)
+                {
+
+                    Tag newTag = new Tag
+                    {
+                        Name = extractedTag
+                    };
+
+                    PostTag pt = new PostTag()
+                    {
+                        Post = post,
+                        Tag = newTag
+                    };
+                    _context.PostTags.Add(pt);
+                }
+                else
+                {
+                    PostTag pt = new PostTag()
+                    {
+                        Post = post,
+                        Tag = existingTag
+                    };
+                    _context.PostTags.Add(pt);
+                }
             }
             post.UserId = isValid.UserId;
             _context.Posts.Add(post);
