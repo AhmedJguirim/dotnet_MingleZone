@@ -33,7 +33,109 @@ namespace MingleZone.Controllers
           {
               return NotFound();
           }
-            var posts = _context.Posts.Include(p => p.User).Include(p => p.Community).Select(p => new PostsOut
+            string authorizationHeader = HttpContext.Request.Headers["Authorization"];
+            if (string.IsNullOrEmpty(authorizationHeader))
+            {
+                return Unauthorized("Token not provided");
+            }
+            if (!authorizationHeader.StartsWith("Bearer "))
+            {
+                return Unauthorized("Invalid token format");
+            }
+            string jwtToken = authorizationHeader.Substring("Bearer ".Length);
+
+            TokenValidationResult isValid = ah.ValidateToken(jwtToken);
+            if (!isValid.IsTokenValid)
+            {
+                return Unauthorized(isValid.ErrorMessage);
+            }
+            int currentUserId = isValid.UserId;
+            var communityIds = _context.CommunityMemberships
+                .Where(m => m.UserId == currentUserId)
+                .Select(m => m.CommunityId)
+                .ToList();
+            var posts = _context.Posts.Where(p => communityIds.Contains(p.CommunityId)).Include(p => p.User).Include(p => p.Community).Select(p => new PostsOut
+            {
+                Id = p.Id,
+                Content = p.Content,
+                UserId = p.UserId,
+                UserName = p.User.Name,
+                CommunityId = p.Community.Id,
+                CommunityName = p.Community.Name
+            }).ToList();
+            return posts;
+        }
+        // GET: api/Posts
+        [HttpGet("/Posts/user/{userId}")]
+        public async Task<ActionResult<IEnumerable<PostsOut>>> GetPostsByUser(int userId)
+        {
+            if (_context.Posts == null)
+            {
+                return NotFound();
+            }
+            string authorizationHeader = HttpContext.Request.Headers["Authorization"];
+            if (string.IsNullOrEmpty(authorizationHeader))
+            {
+                return Unauthorized("Token not provided");
+            }
+            if (!authorizationHeader.StartsWith("Bearer "))
+            {
+                return Unauthorized("Invalid token format");
+            }
+            string jwtToken = authorizationHeader.Substring("Bearer ".Length);
+
+            TokenValidationResult isValid = ah.ValidateToken(jwtToken);
+            if (!isValid.IsTokenValid)
+            {
+                return Unauthorized(isValid.ErrorMessage);
+            }
+            int currentUserId = isValid.UserId;
+            var communityIds = _context.CommunityMemberships
+                .Where(m => m.UserId == currentUserId)
+                .Select(m => m.CommunityId)
+                .ToList();
+            var posts = _context.Posts.Where(p => communityIds.Contains(p.CommunityId) && p.UserId==userId).Include(p => p.User).Include(p => p.Community).Select(p => new PostsOut
+            {
+                Id = p.Id,
+                Content = p.Content,
+                UserId = p.UserId,
+                UserName = p.User.Name,
+                CommunityId = p.Community.Id,
+                CommunityName = p.Community.Name
+            }).ToList();
+            return posts;
+        }
+        [HttpGet("/community/posts/{CommunityId}")]
+        public async Task<ActionResult<IEnumerable<PostsOut>>> GetCommunityPosts(int CommunityId)
+        {
+            if (_context.Posts == null)
+            {
+                return NotFound();
+            }
+            string authorizationHeader = HttpContext.Request.Headers["Authorization"];
+            if (string.IsNullOrEmpty(authorizationHeader))
+            {
+                return Unauthorized("Token not provided");
+            }
+            if (!authorizationHeader.StartsWith("Bearer "))
+            {
+                return Unauthorized("Invalid token format");
+            }
+            string jwtToken = authorizationHeader.Substring("Bearer ".Length);
+
+            TokenValidationResult isValid = ah.ValidateToken(jwtToken);
+            if (!isValid.IsTokenValid)
+            {
+                return Unauthorized(isValid.ErrorMessage);
+            }
+            int currentUserId = isValid.UserId;
+
+            bool isMember = _context.CommunityMemberships.Any(cm=>cm.UserId == currentUserId && cm.CommunityId == CommunityId);
+            if(!isMember)
+            {
+                return Unauthorized("you need to be a member of this community to be able to get its posts");
+            }
+            var posts = _context.Posts.Where(p => p.CommunityId==CommunityId).Include(p => p.User).Include(p => p.Community).Select(p => new PostsOut
             {
                 Id = p.Id,
                 Content = p.Content,
@@ -47,13 +149,21 @@ namespace MingleZone.Controllers
 
         // GET: api/Posts/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Post>> GetPost(int id)
+        public async Task<ActionResult<PostsOut>> GetPost(int id)
         {
           if (_context.Posts == null)
           {
               return NotFound();
           }
-            var post = await _context.Posts.FindAsync(id);
+            var post = _context.Posts.Where(p => p.Id ==id).Include(p => p.User).Include(p => p.Community).Select(p => new PostsOut
+            {
+                Id = p.Id,
+                Content = p.Content,
+                UserId = p.UserId,
+                UserName = p.User.Name,
+                CommunityId = p.Community.Id,
+                CommunityName = p.Community.Name
+            }).FirstOrDefault();
 
             if (post == null)
             {
@@ -139,11 +249,16 @@ namespace MingleZone.Controllers
           {
               return Problem("Entity set 'MingleDbContext.Posts'  is null.");
           }
+            bool isMember = _context.CommunityMemberships.Any(m => m.CommunityId == post.UserId);
+            if(!isMember)
+            {
+                return Unauthorized("you cannot post in this community , become a member first");
+            }
             post.UserId = isValid.UserId;
             _context.Posts.Add(post);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetPost", new { id = post.Id }, post);
+            return Ok();
         }
 
         // DELETE: api/Posts/5
@@ -173,13 +288,14 @@ namespace MingleZone.Controllers
 
 
             var post = await _context.Posts.FindAsync(id);
+            var community = await _context.Communities.FindAsync(post.CommunityId);
             if (post == null)
             {
                 return NotFound();
             }
-            if (post.UserId != isValid.UserId)
+            if (post.UserId != isValid.UserId && isValid.UserId != community.AdminId)
             {
-                return Unauthorized("only the owner of a post can delete it");
+                return Unauthorized("only the owner of a post or the community's admin can delete it");
             }
 
             _context.Posts.Remove(post);

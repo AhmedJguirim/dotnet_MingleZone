@@ -97,7 +97,7 @@ namespace MingleZone.Controllers
             {
                 return BadRequest();
             }
-
+            user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
             _context.Entry(user).State = EntityState.Modified;
 
             try
